@@ -30,7 +30,7 @@ contract Election {
                 }));
         }
 
-        deadline = block.timestamp + 240;
+        deadline = block.timestamp + 120;
     }
 
     function isVotingOpen() public view returns (bool){

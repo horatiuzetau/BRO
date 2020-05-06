@@ -1,10 +1,19 @@
 import React, { Component } from "react";
+import "./App.css";
 import Election from "./build/Election.json";
 import getWeb3 from "./getWeb3";
 
-import "./App.css";
 
-const initState = { value: '', storageValue: null, web3: null, accounts: null, contract: null, options: null, result: null}
+const initState = { 
+  value: '', 
+  storageValue: null, 
+  web3: null, 
+  accounts: null, 
+  contract: null, 
+  options: null, 
+  result: null,
+  remainingTime: null
+}
 
 class App extends Component {
 
@@ -36,7 +45,7 @@ class App extends Component {
         deployedNetwork && deployedNetwork.address
       );
 
-      instance.options.address="0xCca6eb1f8B7dDca23efD78025d9490D65883a33E"
+      instance.options.address="0x00DA65DB1799514b52C2a89fFBFc07d7Fdb97802"
       instance.options.from = accounts[0]
       // instance.options.gas  = 21064
         
@@ -92,8 +101,26 @@ class App extends Component {
     let time = await contract.methods.getBlockStamp().call()
     console.log("time", time)
 
-    this.setState({loading: false, votedFor: votedFor, options: options, result: resultObject, isVotingOpen: isVotingOpen });
+    let interval = null
+    if(deadline > time)
+      interval = setInterval(this.updateTime, 1000)
+
+
+    this.setState({loading: false, votedFor: votedFor, options: options, result: resultObject, isVotingOpen: isVotingOpen, 
+        remainingTime: deadline - time, interval: interval });
   };
+
+  updateTime = () => {
+    let rT = this.state.remainingTime
+    console.log("change")
+    if(rT > 0)
+      this.setState({ remainingTime: rT - 1 });
+    else if(this.state.interval){
+      console.log("inchide")
+      clearInterval(this.state.interval)
+      this.runExample()
+    }
+  }
 
 
   // Vote
@@ -131,7 +158,7 @@ class App extends Component {
   }
 
   generateOutput = () => {
-    const {accounts, votedFor, message, loading,  isVotingOpen, contract, options, result} = this.state
+    const {votedFor, loading,  isVotingOpen, options, result, remainingTime} = this.state
 
     let output;
     
@@ -155,6 +182,7 @@ class App extends Component {
           <>
             {/* Ai votat? daca da, arata cu cine, daca nu spune ca nu */}
             {votedFor.voted ? <p>Ai votat cu {options[parseInt(votedFor.optionId)]}</p> : <p>Nu ai votat...</p> }
+            {remainingTime ? <p>Timp ramas: {remainingTime}s</p> : null }
             {/* LISTA OPTIUNI */}
             Optiunile: {options.map((o,i) => <div key={i}>{i}: {o}</div>)}
             {/* FORMULAR DE ALEGERE */}
@@ -171,7 +199,7 @@ class App extends Component {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
-    const {accounts, votedFor, message, loading,  isVotingOpen, contract, options, result} = this.state
+    const {accounts, message, loading, contract} = this.state
 
 
     let output = this.generateOutput()
